@@ -10,6 +10,7 @@ from tkinter import filedialog, messagebox
 APP_NAME = "darktable-launcher"
 DATA_DIR = Path.home() / ".local" / "share" / APP_NAME
 RECENTS_FILE = DATA_DIR / "recent_catalogues.json"
+MAX_RECENT_CATALOGUES = 32
 
 
 def _normalize_path(value: str | Path) -> str:
@@ -58,6 +59,8 @@ class RecentCatalogues:
         normalized = _normalize_path(path)
         self.entries = [entry for entry in self.entries if entry != normalized]
         self.entries.insert(0, normalized)
+        if len(self.entries) > MAX_RECENT_CATALOGUES:
+            self.entries = self.entries[:MAX_RECENT_CATALOGUES]
         self.save()
         return normalized
 
