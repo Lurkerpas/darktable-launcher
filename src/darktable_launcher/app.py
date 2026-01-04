@@ -101,6 +101,14 @@ class LauncherApp:
         self.open_button = tk.Button(self.button_frame, text="Open", width=12, command=self.open_selected_catalogue)
         self.open_button.pack(side=tk.RIGHT, padx=(8, 0))
 
+        self.select_button = tk.Button(
+            self.button_frame,
+            text="Select another",
+            width=14,
+            command=self.select_existing_catalogue,
+        )
+        self.select_button.pack(side=tk.RIGHT, padx=(8, 0))
+
         self.new_button = tk.Button(self.button_frame, text="New", width=12, command=self.create_new_catalogue)
         self.new_button.pack(side=tk.RIGHT)
 
@@ -161,6 +169,25 @@ class LauncherApp:
             path.touch(exist_ok=True)
         except OSError as exc:
             messagebox.showerror(APP_NAME, f"Cannot create catalogue: {exc}")
+            return
+        normalized = self.recents.move_to_front(path)
+        self.refresh_list(select_target=normalized)
+        if self._launch_darktable(Path(normalized)):
+            self.root.after(100, self.root.destroy)
+
+    def select_existing_catalogue(self) -> None:
+        filepath = filedialog.askopenfilename(
+            title="Select Darktable Catalogue",
+            filetypes=[("Darktable Catalogue", "*.db")],
+        )
+        if not filepath:
+            return
+        path = Path(filepath)
+        if path.suffix.lower() != ".db":
+            messagebox.showerror(APP_NAME, "Please select a .db catalogue file")
+            return
+        if not path.exists():
+            messagebox.showerror(APP_NAME, "Selected catalogue does not exist anymore")
             return
         normalized = self.recents.move_to_front(path)
         self.refresh_list(select_target=normalized)
