@@ -52,7 +52,7 @@ class RecentCatalogues:
                 encoding="utf-8",
             )
         except OSError:
-            messagebox.showerror(APP_NAME, "Unable to save recent catalogues list.")
+            messagebox.showerror(APP_NAME, "Unable to save recent catalogues list")
 
     def move_to_front(self, path: Path) -> str:
         normalized = _normalize_path(path)
@@ -134,7 +134,7 @@ class LauncherApp:
         if path is None:
             return
         if not path.exists():
-            messagebox.showerror(APP_NAME, "Selected catalogue does not exist anymore.")
+            messagebox.showerror(APP_NAME, "Selected catalogue does not exist anymore")
             self.update_open_button_state()
             return
         normalized = self.recents.move_to_front(path)
@@ -171,9 +171,10 @@ class LauncherApp:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 close_fds=True,
+                start_new_session=True
             )
         except FileNotFoundError:
-            messagebox.showerror(APP_NAME, "darktable executable was not found on PATH.")
+            messagebox.showerror(APP_NAME, "darktable executable was not found on PATH")
             return False
         except OSError as exc:
             messagebox.showerror(APP_NAME, f"Unable to start darktable: {exc}")
