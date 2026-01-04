@@ -55,6 +55,11 @@ class RecentCatalogues:
         except OSError:
             messagebox.showerror(APP_NAME, "Unable to save recent catalogues list")
 
+    def remove(self, path: str | Path) -> None:
+        normalized = _normalize_path(path)
+        self.entries = [entry for entry in self.entries if entry != normalized]
+        self.save()
+
     def move_to_front(self, path: Path) -> str:
         normalized = _normalize_path(path)
         self.entries = [entry for entry in self.entries if entry != normalized]
@@ -94,12 +99,24 @@ class LauncherApp:
 
         self.listbox.bind("<<ListboxSelect>>", lambda _: self.update_open_button_state())
         self.listbox.bind("<Double-Button-1>", lambda _: self.open_selected_catalogue())
+        self.listbox.bind("<Button-3>", self.show_context_menu)
+
+        self.list_menu = tk.Menu(self.listbox, tearoff=0)
+        self.list_menu.add_command(label="Remove from recents", command=self.delete_selected_catalogue)
 
         self.button_frame = tk.Frame(self.root, padx=12, pady=12)
         self.button_frame.pack(fill=tk.X)
 
         self.open_button = tk.Button(self.button_frame, text="Open", width=12, command=self.open_selected_catalogue)
         self.open_button.pack(side=tk.RIGHT, padx=(8, 0))
+
+        self.select_button = tk.Button(
+            self.button_frame,
+            text="Select another",
+            width=14,
+            command=self.select_existing_catalogue,
+        )
+        self.select_button.pack(side=tk.RIGHT, padx=(8, 0))
 
         self.new_button = tk.Button(self.button_frame, text="New", width=12, command=self.create_new_catalogue)
         self.new_button.pack(side=tk.RIGHT)
@@ -118,6 +135,21 @@ class LauncherApp:
             self.listbox.selection_set(0)
             self.listbox.see(0)
         self.update_open_button_state()
+
+    def show_context_menu(self, event: tk.Event) -> None:
+        if self.listbox.size() == 0:
+            return
+        index = self.listbox.nearest(event.y)
+        if index < 0 or index >= self.listbox.size():
+            return
+        self.listbox.selection_clear(0, tk.END)
+        self.listbox.selection_set(index)
+        self.listbox.activate(index)
+        self.update_open_button_state()
+        try:
+            self.list_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.list_menu.grab_release()
 
     def get_selected_path(self) -> Path | None:
         selection = self.listbox.curselection()
@@ -145,6 +177,13 @@ class LauncherApp:
         if self._launch_darktable(Path(normalized)):
             self.root.after(100, self.root.destroy)
 
+    def delete_selected_catalogue(self) -> None:
+        path = self.get_selected_path()
+        if path is None:
+            return
+        self.recents.remove(path)
+        self.refresh_list()
+
     def create_new_catalogue(self) -> None:
         filepath = filedialog.asksaveasfilename(
             title="Create Darktable Catalogue",
@@ -161,6 +200,25 @@ class LauncherApp:
             path.touch(exist_ok=True)
         except OSError as exc:
             messagebox.showerror(APP_NAME, f"Cannot create catalogue: {exc}")
+            return
+        normalized = self.recents.move_to_front(path)
+        self.refresh_list(select_target=normalized)
+        if self._launch_darktable(Path(normalized)):
+            self.root.after(100, self.root.destroy)
+
+    def select_existing_catalogue(self) -> None:
+        filepath = filedialog.askopenfilename(
+            title="Select Darktable Catalogue",
+            filetypes=[("Darktable Catalogue", "*.db")],
+        )
+        if not filepath:
+            return
+        path = Path(filepath)
+        if path.suffix.lower() != ".db":
+            messagebox.showerror(APP_NAME, "Please select a .db catalogue file")
+            return
+        if not path.exists():
+            messagebox.showerror(APP_NAME, "Selected catalogue does not exist anymore")
             return
         normalized = self.recents.move_to_front(path)
         self.refresh_list(select_target=normalized)
