@@ -55,6 +55,11 @@ class RecentCatalogues:
         except OSError:
             messagebox.showerror(APP_NAME, "Unable to save recent catalogues list")
 
+    def remove(self, path: str | Path) -> None:
+        normalized = _normalize_path(path)
+        self.entries = [entry for entry in self.entries if entry != normalized]
+        self.save()
+
     def move_to_front(self, path: Path) -> str:
         normalized = _normalize_path(path)
         self.entries = [entry for entry in self.entries if entry != normalized]
@@ -94,6 +99,10 @@ class LauncherApp:
 
         self.listbox.bind("<<ListboxSelect>>", lambda _: self.update_open_button_state())
         self.listbox.bind("<Double-Button-1>", lambda _: self.open_selected_catalogue())
+        self.listbox.bind("<Button-3>", self.show_context_menu)
+
+        self.list_menu = tk.Menu(self.listbox, tearoff=0)
+        self.list_menu.add_command(label="Delete", command=self.delete_selected_catalogue)
 
         self.button_frame = tk.Frame(self.root, padx=12, pady=12)
         self.button_frame.pack(fill=tk.X)
@@ -127,6 +136,21 @@ class LauncherApp:
             self.listbox.see(0)
         self.update_open_button_state()
 
+    def show_context_menu(self, event: tk.Event) -> None:
+        if self.listbox.size() == 0:
+            return
+        index = self.listbox.nearest(event.y)
+        if index < 0 or index >= self.listbox.size():
+            return
+        self.listbox.selection_clear(0, tk.END)
+        self.listbox.selection_set(index)
+        self.listbox.activate(index)
+        self.update_open_button_state()
+        try:
+            self.list_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.list_menu.grab_release()
+
     def get_selected_path(self) -> Path | None:
         selection = self.listbox.curselection()
         if not selection:
@@ -152,6 +176,13 @@ class LauncherApp:
         self.refresh_list(select_target=normalized)
         if self._launch_darktable(Path(normalized)):
             self.root.after(100, self.root.destroy)
+
+    def delete_selected_catalogue(self) -> None:
+        path = self.get_selected_path()
+        if path is None:
+            return
+        self.recents.remove(path)
+        self.refresh_list()
 
     def create_new_catalogue(self) -> None:
         filepath = filedialog.asksaveasfilename(
