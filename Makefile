@@ -18,7 +18,7 @@ venv:
 install: venv
 	$(PIP) install .
 	mkdir -p $(LOCAL_BIN)
-	printf '#!/usr/bin/env sh\n"%s" "$$@"\n' $(LAUNCHER_BIN) > $(WRAPPER)
+	printf '%s\n' '#!/usr/bin/env sh' 'LAUNCHER_BIN="$(LAUNCHER_BIN)"' '[ ! -x "$$LAUNCHER_BIN" ] && { echo "Error: darktable-launcher not found at $$LAUNCHER_BIN. Has the virtual environment been removed or moved?"; exit 1; }' 'exec "$$LAUNCHER_BIN" "$$@"' > $(WRAPPER)
 	chmod +x $(WRAPPER)
 
 desktop-launcher: install
