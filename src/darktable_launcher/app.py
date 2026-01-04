@@ -102,7 +102,7 @@ class LauncherApp:
         self.listbox.bind("<Button-3>", self.show_context_menu)
 
         self.list_menu = tk.Menu(self.listbox, tearoff=0)
-        self.list_menu.add_command(label="Delete", command=self.delete_selected_catalogue)
+        self.list_menu.add_command(label="Remove from recents", command=self.delete_selected_catalogue)
 
         self.button_frame = tk.Frame(self.root, padx=12, pady=12)
         self.button_frame.pack(fill=tk.X)
